@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kallus Creation - Billing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .neubrutalism {
+            border: 3px solid black;
+            box-shadow: 5px 5px 0px 0px black;
+            transition: all 0.2s ease;
+        }
+        .neubrutalism:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px 0px black;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#f0f0f0] p-4 md:p-8">
+    <div class="max-w-4xl mx-auto bg-white p-6 neubrutalism">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2">Kallus Creation</h1>
+            <p class="text-lg">OMBR Layout, Banaswadi, Bengaluru - 560043</p>
+            <p class="text-sm mt-2">Photography & Videography Services</p>
+        </div>
+
+        <div class="flex justify-between mb-6">
+            <div class="w-1/2">
+                <p class="font-bold mb-2">Bill No: <span id="billNumber">202500</span></p>
+                <p class="font-bold">Date: <span id="currentDate"></span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="neubrutalism p-4">
+                <h3 class="font-bold mb-2">From:</h3>
+                <textarea id="fromDetails" class="w-full p-2 border" rows="4" placeholder="Enter your details"></textarea>
+            </div>
+            <div class="neubrutalism p-4">
+                <h3 class="font-bold mb-2">To:</h3>
+                <textarea id="toDetails" class="w-full p-2 border" rows="4" placeholder="Enter client details"></textarea>
+            </div>
+        </div>
+
+        <div class="mb-8 neubrutalism p-4">
+            <table class="w-full mb-4">
+                <thead>
+                    <tr class="border-b-2 border-black">
+                        <th class="p-2 text-left">Description</th>
+                        <th class="p-2 text-right">Amount (₹)</th>
+                        <th class="p-2 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTable">
+                </tbody>
+            </table>
+            <button onclick="addItem()" class="bg-green-500 text-white px-4 py-2 neubrutalism">Add Item</button>
+            <div class="mt-4 text-right">
+                <p class="font-bold">Total: ₹<span id="totalAmount">0</span></p>
+                <p class="text-sm" id="amountInWords"></p>
+            </div>
+        </div>
+
+        <div class="mb-8 neubrutalism p-4">
+            <h3 class="font-bold mb-2">Signature:</h3>
+            <div id="signature" class="border-b-2 border-black h-20"></div>
+        </div>
+
+        <div class="flex gap-4 justify-center no-print">
+            <button onclick="downloadPDF()" class="bg-blue-500 text-white px-6 py-3 neubrutalism">
+                Download PDF
+            </button>
+            <button onclick="downloadJPG()" class="bg-purple-500 text-white px-6 py-3 neubrutalism">
+                Download JPG
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
+
+        let items = [];
+        let currentBillNumber = 202500;
+
+        function addItem() {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-2"><input type="text" class="w-full border p-1" onchange="updateTotal()"></td>
+                <td class="p-2"><input type="number" class="w-full border p-1 text-right" onchange="updateTotal()"></td>
+                <td class="p-2 text-center">
+                    <button onclick="deleteItem(this)" class="text-red-500">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            document.getElementById('itemsTable').appendChild(tr);
+        }
+
+        function deleteItem(btn) {
+            btn.closest('tr').remove();
+            updateTotal();
+        }
+
+        function numberToWords(num) {
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+            if (num === 0) return 'Zero';
+
+            function convert(n) {
+                if (n < 10) return ones[n];
+                if (n < 20) return teens[n - 10];
+                if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
+                if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' and ' + convert(n%100) : '');
+                if (n < 100000) return convert(Math.floor(n/1000)) + ' Thousand' + (n%1000 ? ' ' + convert(n%1000) : '');
+                return convert(Math.floor(n/100000)) + ' Lakh' + (n%100000 ? ' ' + convert(n%100000) : '');
+            }
+
+            return convert(num) + ' Rupees Only';
+        }
+
+        function updateTotal() {
+            let total = 0;
+            const amounts = document.querySelectorAll('#itemsTable input[type="number"]');
+            amounts.forEach(input => {
+                total += Number(input.value) || 0;
+            });
+            document.getElementById('totalAmount').textContent = total.toFixed(2);
+            document.getElementById('amountInWords').textContent = numberToWords(Math.floor(total));
+        }
+
+        function downloadPDF() {
+            const element = document.querySelector('.max-w-4xl');
+            html2pdf().from(element).save(`Kallus_Creation_Bill_${currentBillNumber}.pdf`);
+            currentBillNumber++;
+            document.getElementById('billNumber').textContent = currentBillNumber;
+        }
+
+        async function downloadJPG() {
+            const element = document.querySelector('.max-w-4xl');
+            const canvas = await html2canvas(element);
+            const link = document.createElement('a');
+            link.download = `Kallus_Creation_Bill_${currentBillNumber}.jpg`;
+            link.href = canvas.toDataURL();
+            link.click();
+            currentBillNumber++;
+            document.getElementById('billNumber').textContent = currentBillNumber;
+        }
+
+        // Add first item row by default
+        addItem();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
